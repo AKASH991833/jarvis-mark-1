@@ -33,12 +33,24 @@ def _gemini_tts(text, path):
         response_modalities=["AUDIO"],
         speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=config.GEMINI_VOICE))))
-    r = _client.models.generate_content(model=config.GEMINI_TTS_MODEL, contents=text, config=cfg)
-    pcm = r.candidates[0].content.parts[0].inline_data.data
-    if not pcm:
-        raise RuntimeError("empty audio")
-    with wave.open(path, "wb") as w:
-        w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(pcm)
+    last = None
+    for m in config.TTS_CHAIN:
+        try:
+            r = _client.models.generate_content(model=m, contents=text, config=cfg)
+            part = r.candidates[0].content.parts[0].inline_data
+            data = part.data
+            if not data: raise RuntimeError("empty audio")
+            if data[:4] == b"RIFF":                      # some newer TTS models already return a WAV file
+                with open(path, "wb") as f: f.write(data)
+                return
+            mt = (getattr(part, "mime_type", "") or "").lower(); mr = re.search(r"rate=(\d+)", mt)
+            rate = int(mr.group(1)) if mr else 24000
+            with wave.open(path, "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate); w.writeframes(data)
+            return
+        except Exception as ex:
+            last = ex
+    raise last
 
 async def _edge(text, path):
     import edge_tts
