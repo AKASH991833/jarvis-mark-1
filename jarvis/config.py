@@ -20,7 +20,10 @@ TTS_ENGINE = os.getenv("TTS_ENGINE", "auto").strip().lower()
 GEMINI_VOICE = os.getenv("GEMINI_VOICE", "Achird").strip()
 GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
 WEATHER_CITY = os.getenv("WEATHER_CITY", "Mumbai").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
+# Fallback chain (checked live: older names like gemini-2.5-flash can be closed to new keys). First one that works is used.
+MODEL_CHAIN = list(dict.fromkeys([GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash"]))
+TTS_CHAIN = list(dict.fromkeys([GEMINI_TTS_MODEL, "gemini-2.5-flash-preview-tts", "gemini-3.8-flash-tts", "gemini-3.1-flash-tts-preview", "gemini-3.8-flash-lite-tts"]))
 GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS", "").strip()
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
 
