@@ -25,8 +25,14 @@ def _client():
     return genai.Client(api_key=config.GEMINI_API_KEY)
 
 def _gen(prompt, model=None):
-    r = _client().models.generate_content(model=model or config.GEMINI_MODEL, contents=prompt)
-    return (r.text or "").strip()
+    last = None
+    for m in ([model] if model else config.MODEL_CHAIN[:5]):
+        try:
+            r = _client().models.generate_content(model=m, contents=prompt)
+            t = (r.text or "").strip()
+            if t: return t
+        except Exception as ex: last = ex
+    raise last or RuntimeError("no answer")
 
 def _jload(p, d):
     try: return json.loads(Path(p).read_text(encoding="utf-8"))
