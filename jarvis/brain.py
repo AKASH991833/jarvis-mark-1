@@ -11,6 +11,8 @@ RULES:
 - For several steps, call tools one after another until the job is finished, then say what you did. If something fails, try another way (different tool or gui_task) before giving up, and verify the result.
 - Dangerous tools (delete, shutdown, install, shell commands, email, WhatsApp) ask {name} for permission themselves. Never pretend you did something you did not; if a tool returns an error, say so simply.
 - Never install, download or change anything on your own initiative from research or suggestions: only suggest, and let {name} decide.
+- Morning briefing: call morning_briefing and read it out as a short friendly summary. Dictation, meeting notes, website watch, file content search, usage report, PC health and music all have tools. Self-improvement tools (create_new_tool, self_heal, apply_update, save_skill, undo_last_change) always ask {name} for a yes themselves; never call them unless he asked or agreed.
+- Use set_preference when he states a lasting preference, recall_past when he refers to earlier work or chats. Calendar: add_calendar_event (opens Google Calendar prefilled) and calendar_events. face_greeting turns the webcam greeting on or off.
 - If the speech text looks like noise or a nonsense fragment, reply with exactly: IGNORE
 - Today is {today}. Things you remember about {name}:
 {memory}
@@ -19,7 +21,7 @@ RULES:
 LOCAL_TOOLS = ["open_app", "close_app", "open_website", "google_search", "youtube_search", "play_on_youtube", "open_path", "list_folder",
                "find_files", "read_text_file", "take_screenshot", "system_info", "current_time", "volume", "media_control", "get_weather",
                "get_news", "remember", "set_reminder", "install_software", "run_routine", "add_note", "show_desktop", "press_keys", "type_text",
-               "focus_window", "top_processes", "set_brain_mode", "brain_status"]
+               "focus_window", "top_processes", "set_brain_mode", "brain_status", "morning_briefing", "play_music", "music_control", "usage_report", "watchdog_status"]
 
 def _quota_error(e):
     m = str(e).lower()
@@ -58,7 +60,7 @@ class Brain:
     # ------------------------------------------------------------ setup
     def _sysmsg(self):
         return SYSTEM.format(name=config.USER_NAME, today=datetime.datetime.now().strftime("%A %d %B %Y %I:%M %p"),
-                             memory=pc.load_memory() or "(nothing yet)")
+                             memory=(pc.load_memory() or "(nothing yet)") + " | Saved preferences: " + (pc.extras._prefs_text() or "none"))
 
     def _history(self):
         out = []
@@ -133,6 +135,8 @@ class Brain:
 
     # ------------------------------------------------------------ main entry
     def ask(self, text):
+        try: pc.extras.begin_turn(text)
+        except Exception: pass
         s = self.s = settings.load()
         mode = s["backend"]
         use_local = mode == "ollama" or (mode == "auto" and time.time() < self.gemini_block_until)
@@ -172,5 +176,7 @@ class Brain:
         return "Abhi internet ya Gemini limit ki problem hai. Thodi der baad try karo." + tip
 
     def _remember(self, u, a):
+        try: pc.extras.log_turn('user', u); pc.extras.log_turn('jarvis', a)
+        except Exception: pass
         if a and a.strip().upper() != "IGNORE": self.turns.append((u, a))
         self.turns = self.turns[-20:]
