@@ -1,0 +1,13 @@
+google-genai>=1.0.0
+edge-tts>=6.1.12
+sounddevice>=0.4.6
+numpy>=1.24
+pygame>=2.5.0
+pyautogui>=0.9.54
+pyperclip>=1.8.2
+psutil>=5.9.0
+send2trash>=1.8.2
+pygetwindow>=0.0.9
+requests>=2.31.0
+python-dotenv>=1.0.0
+pillow>=10.0.0
