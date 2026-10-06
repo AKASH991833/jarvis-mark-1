@@ -776,11 +776,13 @@ _RAW = [open_app, close_app, open_website, google_search, youtube_search, play_o
         get_news, wikipedia_summary, read_webpage, add_note, read_notes, save_routine, run_routine, top_processes,
         network_info, clean_temp_files, organize_folder, open_settings_page, set_alarm,
         system_specs, upgrade_brain_to_local, set_brain_mode, brain_status_report, research_upgrades]
+from . import extras
+_RAW += extras.EXTRA_TOOLS
 
 AUDIT = config.DATA_DIR / "action_log.txt"
 CONTROL = {"open_app", "close_app", "open_path", "delete_path", "move_path", "copy_path", "write_text_file", "type_text", "press_keys",
            "click_at", "scroll", "run_shell_command", "power", "install_software", "uninstall_software", "download_file", "run_installer",
-           "find_and_click", "gui_task", "focus_window", "window_action", "show_desktop", "volume", "brightness", "media_control",
+           "dictation_mode", "meeting_mode", "music_control", "play_music", "create_new_tool", "self_heal", "undo_last_change", "apply_update", "save_skill", "run_skill", "find_and_click", "gui_task", "focus_window", "window_action", "show_desktop", "volume", "brightness", "media_control",
            "upgrade_brain_to_local", "clean_temp_files", "organize_folder", "send_whatsapp", "send_email", "run_routine", "take_screenshot", "describe_screen", "open_settings_page", "create_folder"}
 
 def _wrap(fn):
@@ -792,10 +794,13 @@ def _wrap(fn):
             return "PC control is LOCKED by the user (HUD switch). Tell him to switch it to ARMED."
         arg = ", ".join([repr(x)[:40] for x in a] + [f"{kk}={repr(v)[:40]}" for kk, v in k.items()])
         bus.log("tool", f"{fn.__name__}({arg})")
+        try: extras.record_call(fn.__name__, k)
+        except Exception: pass
         try:
             res = fn(*a, **k)
         except Exception as e:
             res = f"ERROR: {type(e).__name__}: {e}"
+            extras._log_err(f"{fn.__module__.split('.')[-1]}.py {fn.__name__}: {e}")
         try:
             with open(AUDIT, "a", encoding="utf-8") as f: f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {fn.__name__}({arg}) -> {str(res)[:120]}\n")
         except Exception: pass
@@ -805,3 +810,6 @@ def _wrap(fn):
 _seen = set(); TOOLS = []
 for _f in _RAW:
     if _f.__name__ not in _seen: _seen.add(_f.__name__); TOOLS.append(_wrap(_f))
+
+try: extras.load_plugins()
+except Exception: pass
