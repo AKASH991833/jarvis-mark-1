@@ -45,7 +45,7 @@ class Brain:
         from google.genai import types
         self.genai, self.types = genai, types
         self.client = genai.Client(api_key=config.GEMINI_API_KEY)
-        self.models = list(dict.fromkeys([config.GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]))
+        self.models = list(config.MODEL_CHAIN)
         self.mi = 0
         import threading; self._lock = threading.RLock()
         self.turns = []                 # plain (user, jarvis) text memory shared by both brains
