@@ -101,7 +101,7 @@ Free Gemini allows limited requests per minute/day. Jarvis controls the PC only 
 **Feature Pack 2** (just ask by voice):
 - "Good morning" / "morning briefing" - weather, news, notes, battery
 - "Dictation shuru karo" - whatever you say is typed in the active app. Say "dictation band" to stop
-- "Wo PDF dikhao jisme Linux commands the" - searches INSIDE your files (for PDF run: pip install pypdf, already in requirements)
+- "Wo PDF dikhao jisme Linux commands the" - searches INSIDE your files (PDF search uses pypdf, installed as an optional extra)
 - "Is website pe nazar rakho" - tells you when a page changes
 - "Meeting mode start" / "meeting khatam" - notes saved in Documents/Jarvis-Meetings (it hears through the microphone, so keep the speaker on)
 - "Aaj kitna time kis app me gaya" - usage report (tracking starts when Jarvis runs)
