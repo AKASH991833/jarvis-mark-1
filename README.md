@@ -95,3 +95,22 @@ Opening Gmail in browser works already. To let Jarvis read/send mail by voice:
 
 ## Limits (honest)
 Free Gemini allows limited requests per minute/day. Jarvis controls the PC only while it is running.
+
+## New in v1.4
+
+**Feature Pack 2** (just ask by voice):
+- "Good morning" / "morning briefing" - weather, news, notes, battery
+- "Dictation shuru karo" - whatever you say is typed in the active app. Say "dictation band" to stop
+- "Wo PDF dikhao jisme Linux commands the" - searches INSIDE your files (for PDF run: pip install pypdf, already in requirements)
+- "Is website pe nazar rakho" - tells you when a page changes
+- "Meeting mode start" / "meeting khatam" - notes saved in Documents/Jarvis-Meetings (it hears through the microphone, so keep the speaker on)
+- "Aaj kitna time kis app me gaya" - usage report (tracking starts when Jarvis runs)
+- PC watchdog - warns you about full disk, low battery, high RAM, heat
+- "Arijit ka Tum Hi Ho chalao", "next", "pause" - hands-free music
+
+**Self-improvement** (Jarvis NEVER changes itself without your yes):
+- "Naya tool banao jo ..." - Jarvis writes new code, shows you, asks, saves a backup, then adds it
+- "Apna bug fix karo" - reads data/errors.log, proposes a fix to one file, asks you, backs up, rolls back if it breaks
+- "Update check karo" / "update karo" - new version from GitHub (private repo: put GITHUB_TOKEN in .env, or make the repo public)
+- "Kaunse kaam baar-baar karta hoon?" - learns repeated tasks, offers a shortcut; "run skill NAME" replays it
+- "Last change undo karo" - restores the backup. Everything is listed in data/changes.log ("change log dikhao")
