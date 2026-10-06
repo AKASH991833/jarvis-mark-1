@@ -48,6 +48,8 @@ def assistant(text_mode, typed):
         return False
 
     pc.confirm = confirm
+    try: pc.extras.start_background()
+    except Exception: pass
     pc.notify = lambda t: speak(t)
     bus.info["model"] = config.GEMINI_MODEL
     h = time.localtime().tm_hour
