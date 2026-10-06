@@ -32,6 +32,9 @@ call venv\Scripts\python.exe -m pip install --upgrade pip >nul
 call venv\Scripts\python.exe -m pip install -r requirements.txt
 if errorlevel 1 ( echo. & echo Install failed. Check internet and run install.bat again. & pause & exit /b 1 )
 
+echo Installing optional extras (face greeting, PDF search)... if this fails Jarvis still works.
+call venv\Scripts\python.exe -m pip install opencv-python pypdf
+
 if not exist .env copy .env.example .env >nul
 echo.
 echo [3/3] Gemini key
