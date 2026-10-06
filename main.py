@@ -16,6 +16,7 @@ def assistant(text_mode, typed):
         from jarvis import listen
 
     def hear(wait=3.0):
+        hear.wav = None
         if typed is not None:
             try: return typed.get_nowait()
             except queue.Empty: pass
@@ -33,6 +34,7 @@ def assistant(text_mode, typed):
         bus.state("thinking")
         t = listen.transcribe(wav, brain.client)
         if t: bus.log("user", t)
+        hear.wav = wav
         return t
 
     def confirm(question):
@@ -42,14 +44,15 @@ def assistant(text_mode, typed):
             while time.time() < end and not ans:
                 ans = hear(4.0)
             ans = ans.lower().strip()
+            if ans and not pc.remote.gate_check(ans, hear.wav)[0]: ans = ""
             if has(NO, ans): return False
             if has(YES, ans): return True
             speak("Mujhe samajh nahi aaya. Haan ya nahi bolo.")
         return False
 
     pc.confirm = confirm
-    try: pc.extras.start_background()
-    except Exception: pass
+    try: pc.extras.start_background(); pc.remote.start_all(brain.ask)
+    except Exception as e: print('[background features]', e)
     pc.notify = lambda t: speak(t)
     bus.info["model"] = config.GEMINI_MODEL
     h = time.localtime().tm_hour
@@ -62,8 +65,12 @@ def assistant(text_mode, typed):
     except Exception: pass
     speak(f"{wish} {config.USER_NAME}. Saari systems online hain.{extra} Bolo, kya karna hai?")
     while True:
+        hear.wav = None
         t = hear()
         if not t: continue
+        ok, msg = pc.remote.gate_check(t, hear.wav)
+        if msg: speak(msg)
+        if not ok: bus.state("idle"); continue
         low = t.lower()
         if config.WAKE_WORD_ENABLED and not text_mode and typed is None and not any(w in low for w in (config.WAKE_WORD, "जार्विस", "जर्विस")):
             continue
