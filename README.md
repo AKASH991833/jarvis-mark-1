@@ -114,3 +114,8 @@ Free Gemini allows limited requests per minute/day. Jarvis controls the PC only 
 - "Update check karo" / "update karo" - new version from GitHub (private repo: put GITHUB_TOKEN in .env, or make the repo public)
 - "Kaunse kaam baar-baar karta hoon?" - learns repeated tasks, offers a shortcut; "run skill NAME" replays it
 - "Last change undo karo" - restores the backup. Everything is listed in data/changes.log ("change log dikhao")
+
+## New in v1.5
+- **Google Calendar**: "kal shaam 6 baje meeting add karo" opens Google Calendar with the event filled in, you press Save (no sign-in setup needed). To also READ your events, paste your calendar's secret iCal address in .env as GCAL_ICAL_URL.
+- **Face greeting** (optional): set FACE_GREETING=true in .env. The webcam only checks if someone is in front of the PC and greets you when you come back after 20+ minutes. Local OpenCV, nothing is saved or uploaded.
+- **Better memory**: Jarvis keeps a local database (data/memory.db) of your preferences and past chats. Say "yaad rakh, mujhe ... pasand hai" or "pichli baar maine kya kaam kiya tha?".
