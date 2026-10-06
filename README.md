@@ -119,3 +119,23 @@ Free Gemini allows limited requests per minute/day. Jarvis controls the PC only 
 - **Google Calendar**: "kal shaam 6 baje meeting add karo" opens Google Calendar with the event filled in, you press Save (no sign-in setup needed). To also READ your events, paste your calendar's secret iCal address in .env as GCAL_ICAL_URL.
 - **Face greeting** (optional): set FACE_GREETING=true in .env. The webcam only checks if someone is in front of the PC and greets you when you come back after 20+ minutes. Local OpenCV, nothing is saved or uploaded.
 - **Better memory**: Jarvis keeps a local database (data/memory.db) of your preferences and past chats. Say "yaad rakh, mujhe ... pasand hai" or "pichli baar maine kya kaam kiya tha?".
+
+## New in v1.6
+
+### Phone remote (Telegram, free) - one setup
+1. On your phone open Telegram, search **@BotFather**, send `/newbot`, choose a name. It gives you a long **token**.
+2. Open the `.env` file, paste it after `TELEGRAM_BOT_TOKEN=` and restart Jarvis.
+3. Send any message to your new bot. It replies with your **chat id**. Paste it after `TELEGRAM_CHAT_ID=` in `.env` and restart. From now on the bot obeys ONLY your chat; strangers are ignored.
+Commands: /status /shot (screenshot) /lock /shutdown /open /download /say /note /ask (any Jarvis command). Dangerous ones ask "Reply YES or NO" on Telegram first. The PC must be on and Jarvis running; this cannot wake a PC that is off.
+
+### Proactive agent
+- "Roz 10:30 baje standup add karo" (recurring): 5 minutes before, Jarvis speaks a heads-up, opens the app/site and reads your note.
+- Say "kal subah email bhejna hai": Jarvis remembers it and nudges you (up to 3 times, 1 hour apart) until you say it is done.
+- Optional: set PROACTIVE_BROWSING=true and when you stay on one browser page 2+ minutes it OFFERS a short summary. It only suggests. It reads your browser window title, nothing else, and nothing leaves your PC except the topic lookup you accept.
+
+### Voice gate (honest limits)
+Set VOICE_GATE in `.env`: `off` (default), `pin`, `voiceprint` or `both`.
+- **pin**: commands are locked until you say "jarvis unlock 1 2 3 4" (your VOICE_PIN). Unlock lasts VOICE_GATE_MINUTES. This is the reliable mode. Anyone who hears your PIN can use it.
+- **voiceprint**: say "enroll voice" once. Afterwards only a similar-sounding voice is accepted. This is a basic free local check, NOT bank-grade: noise, a cold, a different mic or a recording of your voice can fool it or lock you out. Tune VOICE_GATE_THRESHOLD (lower = easier).
+- **both**: PIN unlock AND a matching voice.
+Typing commands in the window is never blocked. The gate also covers yes/no confirmations. It cannot unlock Windows.
