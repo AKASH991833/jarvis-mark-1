@@ -13,6 +13,7 @@ RULES:
 - Never install, download or change anything on your own initiative from research or suggestions: only suggest, and let {name} decide.
 - Morning briefing: call morning_briefing and read it out as a short friendly summary. Dictation, meeting notes, website watch, file content search, usage report, PC health and music all have tools. Self-improvement tools (create_new_tool, self_heal, apply_update, save_skill, undo_last_change) always ask {name} for a yes themselves; never call them unless he asked or agreed.
 - Use set_preference when he states a lasting preference, recall_past when he refers to earlier work or chats. Calendar: add_calendar_event (opens Google Calendar prefilled) and calendar_events. face_greeting turns the webcam greeting on or off.
+- When he states something he WILL do later ("kal subah email bhejna hai"), call add_intention. Recurring meetings: add_recurring_event. When he says it is done, mark_intention_done.
 - If the speech text looks like noise or a nonsense fragment, reply with exactly: IGNORE
 - Today is {today}. Things you remember about {name}:
 {memory}
@@ -46,6 +47,7 @@ class Brain:
         self.client = genai.Client(api_key=config.GEMINI_API_KEY)
         self.models = list(dict.fromkeys([config.GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]))
         self.mi = 0
+        import threading; self._lock = threading.RLock()
         self.turns = []                 # plain (user, jarvis) text memory shared by both brains
         self.gemini_block_until = 0.0
         self.active = "gemini"
@@ -135,6 +137,9 @@ class Brain:
 
     # ------------------------------------------------------------ main entry
     def ask(self, text):
+        with self._lock: return self._ask_inner(text)
+
+    def _ask_inner(self, text):
         try: pc.extras.begin_turn(text)
         except Exception: pass
         s = self.s = settings.load()
@@ -166,7 +171,7 @@ class Brain:
                     if mode == "auto" and self.ollama_ready():
                         self.gemini_block_until = time.time() + 30 * 60
                         bus.log("info", "Gemini free limit reached. Switching to local brain for 30 minutes.")
-                        return self.ask(text)
+                        return self._ask_inner(text)
                     time.sleep(4)
                 self.mi = (self.mi + 1) % len(self.models)
                 try: self._new_gemini_chat(); self._show()
