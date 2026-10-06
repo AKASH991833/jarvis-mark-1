@@ -72,7 +72,7 @@ def _stt_gemini(wav, client):
               "Write Hindi words in Devanagari and English words in English. "
               "Output ONLY the transcript. If there is no clear human speech, output nothing.")
     last = None
-    for m in (config.GEMINI_MODEL, "gemini-2.0-flash", "gemini-flash-latest"):
+    for m in config.MODEL_CHAIN[:5]:
         try:
             r = client.models.generate_content(
                 model=m, contents=[prompt, types.Part.from_bytes(data=wav, mime_type="audio/wav")])
