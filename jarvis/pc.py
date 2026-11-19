@@ -778,10 +778,10 @@ def upgrade_brain_to_local(model: str = "") -> str:
     return f"VERIFIED: local brain {pick} is ready. Jarvis now uses Gemini first and switches to the local brain automatically when the Gemini free limit ends, then comes back. (Local small models are weaker at Hindi.)"
 
 def set_brain_mode(mode: str) -> str:
-    """Choose the brain: 'gemini' (cloud only), 'ollama' (local offline only) or 'auto' (Gemini first, local when the free limit ends)."""
+    """Choose the brain: 'auto' (free fallback chain: Gemini, then Groq, then OpenCode, then local Ollama), or force one: 'gemini' | 'groq' | 'opencode' | 'ollama'."""
     from . import settings
     mode = mode.lower().strip()
-    if mode not in ("gemini", "ollama", "auto"): return "Mode must be gemini, ollama or auto."
+    if mode not in ("auto", "gemini", "groq", "opencode", "ollama"): return "Mode must be auto, gemini, groq, opencode or ollama."
     settings.save(backend=mode); brain_reload(); return f"Brain mode set to {mode}."
 
 def brain_status_report() -> str:

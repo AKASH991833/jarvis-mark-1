@@ -10,6 +10,10 @@ def _b(name, default="false"):
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()   # free Groq chat brain (fallback)
+OPENCODE_MODEL = os.getenv("OPENCODE_MODEL", "opencode/deepseek-v4.1-flash-free").strip()  # free model id rotates: check `opencode models`
+# Fallback order of brains when backend=auto. Keep 'ollama' last: it is local, nothing leaves the PC.
+BRAIN_CHAIN = [b.strip().lower() for b in os.getenv("BRAIN_CHAIN", "gemini,groq,opencode,ollama").split(",") if b.strip()]
 STT_ENGINE = os.getenv("STT_ENGINE", "auto").strip().lower()
 VOICE = os.getenv("VOICE", "hi-IN-MadhurNeural").strip()
 VOICE_RATE = os.getenv("VOICE_RATE", "+5%").strip()

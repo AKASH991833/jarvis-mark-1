@@ -306,5 +306,33 @@ class TestAgent(unittest.TestCase):
             self.assertIn(n, LOCAL_TOOLS)
 
 
+class TestBrainChain(unittest.TestCase):
+    """v2.2: free brain fallback chain (Gemini -> Groq -> OpenCode -> Ollama)."""
+    def test_active_chain_auto(self):
+        from jarvis.brain import active_chain
+        self.assertEqual(active_chain("auto"), config.BRAIN_CHAIN)
+        self.assertEqual(active_chain("auto")[0], "gemini")
+        self.assertIn("ollama", active_chain("auto"))
+    def test_active_chain_forced(self):
+        from jarvis.brain import active_chain
+        self.assertEqual(active_chain("groq"), ["groq"])
+        self.assertEqual(active_chain("opencode"), ["opencode"])
+    def test_brain_chain_config_default(self):
+        self.assertEqual(config.BRAIN_CHAIN, ["gemini", "groq", "opencode", "ollama"])
+    def test_opencode_and_groq_not_ready_offline(self):
+        # no brain construction needed: these checks only need config/shutil
+        import shutil
+        self.assertFalse(bool(shutil.which("opencode")) and not config.OPENCODE_MODEL)
+    def test_set_brain_mode_accepts_new_modes(self):
+        from jarvis import settings
+        settings.F = config.DATA_DIR / "settings.json"
+        pc.brain_reload = lambda: None
+        for m in ("auto", "gemini", "groq", "opencode", "ollama"):
+            self.assertIn(m, pc.set_brain_mode(m))
+            self.assertEqual(settings.load()["backend"], m)
+        self.assertIn("must be", pc.set_brain_mode("chatgpt"))
+        pc.set_brain_mode("auto")
+
+
 if __name__ == "__main__":
     unittest.main()

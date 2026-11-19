@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.2 (2026-11-19) - "Kabhi brain khatam nahi hota"
+**Ek free brain khatam ho to agla free brain - automatically.**
+
+New powers:
+- **Groq chat brain** - the same free Groq key (console.groq.com, no card) that powers better Hindi Whisper hearing now also works as a fast fallback chat brain WITH tool use. Model configurable: `GROQ_MODEL=` (default llama-3.3-70b-versatile).
+- **OpenCode brain** - if the free OpenCode CLI is installed, Jarvis falls back to its free models (default `opencode/deepseek-v4.1-flash-free`; free ids rotate - check `opencode models`, set `OPENCODE_MODEL=`). Privacy: saved memories/preferences are NOT sent to OpenCode, only the current chat. No tools in this mode - answers/advice only.
+- **Free fallback chain** - Gemini -> Groq -> OpenCode -> Ollama (local, offline). Configurable via `BRAIN_CHAIN=` in `.env`. "brain mode groq karo" forces one brain; "brain status batao" shows which is active and which fallbacks are ready.
+- Gemini free-limit handling now pauses Gemini for 30 minutes and walks the chain instead of giving up.
+
+Already built-in (from earlier versions, still free): Groq Whisper hearing, edge-tts Hindi voice fallback (hi-IN-MadhurNeural, no key needed).
+
+Engineering:
+- 5 new offline tests (50 total): chain order, config defaults, new brain modes.
+- Not verified on real Windows yet: live Groq chat calls, live OpenCode CLI runs (needs opencode installed + signed in there).
+
 ## v2.1 (2026-11-19) - "Insaan ki tarah kaam"
 **Ek baar bolo, Jarvis step-by-step poora kaam karta hai - insaan ki tarah.**
 

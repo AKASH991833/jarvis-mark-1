@@ -72,9 +72,16 @@ Every action is saved in `data/action_log.txt`. Self-changes are backed up in `d
 
 ## Optional free upgrades (in `.env`)
 
-- **Better Hindi hearing**: free Groq key at https://console.groq.com/keys (no card) -> `GROQ_API_KEY=` (Whisper, more accurate than Gemini hearing)
+- **Better Hindi hearing + fast backup brain**: free Groq key at https://console.groq.com/keys (no card) -> `GROQ_API_KEY=` (Whisper, more accurate than Gemini hearing, AND a fast free chat brain that answers when Gemini's free limit ends)
 - **Voice**: `GEMINI_VOICE=Alnilam` (deep, default) or Achird / Algieba / Charon / Orus. Free backup voice when Gemini is busy: `VOICE=hi-IN-MadhurNeural` (male) or hi-IN-SwaraNeural (female)
 - **Offline backup brain**: say "apne aap ko upgrade karo" - Jarvis checks your PC, installs Ollama (free), downloads a model that fits your RAM, and auto-switches when the Gemini free limit ends
+- **OpenCode free brain (optional)**: install the free OpenCode CLI (needs free Node.js LTS first, then `npm install -g opencode-ai`; run `opencode` once if it asks for a free sign-in). Jarvis then uses it as another free fallback brain when Gemini and Groq are both out. Free model names rotate - see today's list with `opencode models` and set `OPENCODE_MODEL=` in `.env`. Privacy note: Jarvis does NOT send your saved memories/preferences to OpenCode - only the current chat.
+
+## Brain fallback chain (all free)
+
+`Gemini (your free key)` -> `Groq (free key, optional)` -> `OpenCode (free CLI, optional)` -> `Ollama (fully local, offline)`
+
+Order is configurable in `.env` (`BRAIN_CHAIN=`). Force one brain any time: "brain mode groq karo" / "brain mode auto karo". Ask "brain status batao" to see which brain is active.
 - **Gmail read/send**: Google Account -> Security -> 2-Step Verification -> App passwords -> fill `GMAIL_ADDRESS=` and `GMAIL_APP_PASSWORD=`
 - **Google Calendar read**: Calendar settings -> Integrate calendar -> Secret address in iCal format -> `GCAL_ICAL_URL=`
 - **Phone remote (Telegram)**: message @BotFather, `/newbot`, paste the token in `.env` (`TELEGRAM_BOT_TOKEN=`), message your bot, paste the chat id it replies (`TELEGRAM_CHAT_ID=`). Commands: /status /shot /lock /shutdown /open /download /say /note /ask
@@ -83,7 +90,7 @@ Every action is saved in `data/action_log.txt`. Self-changes are backed up in `d
 
 ## Honest limits
 
-- Free Gemini has per-minute/per-day limits. When it runs out, Jarvis says so and (if you set up Ollama) switches to the local brain for 30 minutes. Local models are weaker, and weaker in Hindi.
+- Free Gemini has per-minute/per-day limits. When it runs out, Jarvis says so and walks down the free chain (Groq -> OpenCode -> Ollama). Local models are weaker, and weaker in Hindi. OpenCode mode cannot run PC tools - it only answers/advises.
 - Jarvis controls the PC only while it is running. It cannot wake a sleeping PC or unlock Windows.
 - Needs internet for hearing, thinking and voice (except the optional local brain).
 - Windows admin popups ("Yes/No") during installs still need your click.
@@ -91,7 +98,7 @@ Every action is saved in `data/action_log.txt`. Self-changes are backed up in `d
 
 ## Development
 
-- `run_tests.bat` - 43 offline tests (no mic/screen/internet needed)
+- `run_tests.bat` - 50 offline tests (no mic/screen/internet needed)
 - GitHub Actions runs the tests on Windows + Linux on every push
 - Self-update: "update check karo" pulls the newest version from this repo (public repo: works as-is; private repo: put GITHUB_TOKEN in `.env`)
 

@@ -32,6 +32,14 @@ def _quota_error(e):
     m = str(e).lower()
     return any(k in m for k in ("429", "quota", "resource_exhausted", "rate limit", "exhausted"))
 
+class _BrainDown(Exception):
+    """One brain in the chain failed - try the next one."""
+
+def active_chain(mode):
+    """Which brains to try, in order. 'auto' = the full free chain from .env (BRAIN_CHAIN)."""
+    mode = (mode or "auto").lower().strip()
+    return list(config.BRAIN_CHAIN) if mode == "auto" else [mode]
+
 def _schema(fn):
     props, req = {}, []
     for n, p in inspect.signature(fn).parameters.items():
@@ -55,6 +63,7 @@ class Brain:
         self.turns = []                 # plain (user, jarvis) text memory shared by both brains
         self.gemini_block_until = 0.0
         self.active = "gemini"
+        self.groq_msgs = None
         self.local_tools = [t for t in pc.TOOLS if t.__name__ in LOCAL_TOOLS]
         self.local_schema = [_schema(t) for t in self.local_tools]
         self.local_msgs = None
@@ -90,10 +99,15 @@ class Brain:
         try: self._new_gemini_chat()
         except Exception as e: print("[brain setup]", e)
         self.local_msgs = None
+        self.groq_msgs = None
         self._show()
 
     def _show(self):
-        bus.info["brain"] = ("LOCAL " + self.s["ollama_model"].upper()[:12]) if self.active == "ollama" else ("GEMINI " + self.models[self.mi].replace("gemini-", "").upper())
+        names = {"gemini": "GEMINI " + self.models[self.mi].replace("gemini-", "").upper(),
+                 "groq": "GROQ " + config.GROQ_MODEL.upper()[:16],
+                 "opencode": "OPENCODE (free)",
+                 "ollama": "LOCAL " + self.s["ollama_model"].upper()[:12]}
+        bus.info["brain"] = names.get(self.active, self.active.upper())
         bus.info["model"] = bus.info["brain"]
 
     # ------------------------------------------------------------ local (Ollama)
@@ -107,12 +121,21 @@ class Brain:
         except Exception:
             return False
 
+    def groq_ready(self):
+        return bool(config.GROQ_API_KEY)
+
+    def opencode_ready(self):
+        import shutil
+        return bool(shutil.which("opencode"))
+
     def status(self):
         s = settings.load()
-        return (f"Mode: {s['backend']}. Active brain now: {self.active} "
-                f"({'Gemini ' + self.models[self.mi] if self.active == 'gemini' else 'Ollama ' + s['ollama_model']}). "
-                f"Local model: {s['ollama_model'] or 'not set up'} ({'ready' if self.ollama_ready() else 'not ready'}). "
-                f"Gemini paused until: {time.strftime('%H:%M', time.localtime(self.gemini_block_until)) if self.gemini_block_until > time.time() else 'no'}.")
+        chain = ", ".join(active_chain(s["backend"]))
+        return (f"Mode: {s['backend']} (fallback chain: {chain}). Active brain now: {self.active}. "
+                f"Gemini paused until: {time.strftime('%H:%M', time.localtime(self.gemini_block_until)) if self.gemini_block_until > time.time() else 'no'}. "
+                f"Groq: {'ready' if self.groq_ready() else 'no key in .env'}. "
+                f"OpenCode: {'installed' if self.opencode_ready() else 'not installed'}. "
+                f"Local model: {s['ollama_model'] or 'not set up'} ({'ready' if self.ollama_ready() else 'not ready'}).")
 
     def _ask_local(self, text):
         import requests
@@ -139,22 +162,87 @@ class Brain:
                 self.local_msgs.append({"role": "tool", "tool_name": fn, "content": str(res)[:1500]})
         return "Kaam poora nahi ho paaya, thoda alag tareeke se bolo."
 
+    # ------------------------------------------------------------ groq (free fast cloud brain, same Whisper key account)
+    def _ask_groq(self, text):
+        import requests
+        if self.active != "groq":
+            self.active = "groq"; self.groq_msgs = None
+            self._show(); bus.log("info", "Groq brain active (fast free fallback)")
+        if self.groq_msgs is None:
+            self.groq_msgs = [{"role": "system", "content": self._sysmsg()}]
+            for u, a in self.turns[-6:]:
+                self.groq_msgs += [{"role": "user", "content": u}, {"role": "assistant", "content": a}]
+        self.groq_msgs.append({"role": "user", "content": text})
+        by = {t.__name__: t for t in self.local_tools}
+        for _ in range(6):
+            r = requests.post("https://api.groq.com/openai/v1/chat/completions", timeout=120,
+                              headers={"Authorization": "Bearer " + config.GROQ_API_KEY},
+                              json={"model": config.GROQ_MODEL, "messages": self.groq_msgs,
+                                    "tools": self.local_schema, "temperature": 0.5})
+            if r.status_code >= 400:
+                raise _BrainDown(f"groq http {r.status_code}")
+            msg = r.json()["choices"][0]["message"]
+            self.groq_msgs.append(msg)
+            calls = msg.get("tool_calls") or []
+            if not calls:
+                return (msg.get("content") or "").strip()
+            for c in calls:
+                fn = c["function"]["name"]
+                try: args = json.loads(c["function"].get("arguments") or "{}")
+                except Exception: args = {}
+                try: res = by[fn](**args) if fn in by else f"Unknown tool {fn}"
+                except Exception as e: res = f"ERROR: {e}"
+                self.groq_msgs.append({"role": "tool", "tool_call_id": c.get("id", fn), "content": str(res)[:1500]})
+        return "Kaam poora nahi ho paaya, thoda alag tareeke se bolo."
+
+    # ------------------------------------------------------------ opencode (free fallback brain via its CLI)
+    def _opencode_run(self, prompt):
+        import subprocess
+        r = subprocess.run(["opencode", "run", "--model", config.OPENCODE_MODEL, prompt],
+                           capture_output=True, timeout=300, text=True, errors="replace")
+        out = (r.stdout or "").strip()
+        if r.returncode != 0 or not out:
+            raise _BrainDown((r.stderr or "opencode failed")[:120].replace("\n", " "))
+        return out
+
+    def _ask_opencode(self, text):
+        # PRIVACY: opencode free models may log prompts - no saved memories or preferences are sent, only this chat.
+        if self.active != "opencode":
+            self.active = "opencode"; self._show()
+            bus.log("info", "OpenCode brain active (free fallback - yaad-rakhi hui cheezein isko nahi bheji jaati)")
+        today = datetime.datetime.now().strftime("%A %d %B %Y")
+        sysmsg = (f"You are JARVIS, a Windows voice assistant for {config.USER_NAME}. Answer in short spoken-style "
+                  f"Hinglish (Devanagari + English tech words). You have no tools in this mode - just answer or advise. Today is {today}.")
+        hist = "".join(f"User: {u}\nJarvis: {a}\n" for u, a in self.turns[-4:])
+        return self._opencode_run(sysmsg + "\n" + hist + f"User: {text}\nJarvis:")
+
     # ------------------------------------------------------------ planner text (used by agent.plan_steps)
     def plan_text(self, prompt):
-        """One-shot text generation for step planning: Gemini first, local brain as backup."""
-        try:
-            r = self.client.models.generate_content(model=self.models[self.mi], contents=prompt)
-            return (r.text or "").strip()
-        except Exception:
-            pass
-        if self.ollama_ready():
+        """One-shot text generation for step planning: tries each ready brain in chain order."""
+        for name in active_chain(settings.load()["backend"]):
             try:
-                import requests
-                r = requests.post(self.s["ollama_url"] + "/api/generate", timeout=120,
-                                  json={"model": self.s["ollama_model"], "prompt": prompt, "stream": False})
-                return (r.json().get("response") or "").strip()
+                if name == "gemini" and config.key_ok():
+                    r = self.client.models.generate_content(model=self.models[self.mi], contents=prompt)
+                    out = (r.text or "").strip()
+                elif name == "groq" and self.groq_ready():
+                    import requests
+                    r = requests.post("https://api.groq.com/openai/v1/chat/completions", timeout=60,
+                                      headers={"Authorization": "Bearer " + config.GROQ_API_KEY},
+                                      json={"model": config.GROQ_MODEL, "temperature": 0.2,
+                                            "messages": [{"role": "user", "content": prompt}]})
+                    out = r.json()["choices"][0]["message"]["content"].strip() if r.status_code < 400 else ""
+                elif name == "opencode" and self.opencode_ready():
+                    out = self._opencode_run(prompt)
+                elif name == "ollama" and self.ollama_ready():
+                    import requests
+                    r = requests.post(self.s["ollama_url"] + "/api/generate", timeout=120,
+                                      json={"model": self.s["ollama_model"], "prompt": prompt, "stream": False})
+                    out = (r.json().get("response") or "").strip()
+                else:
+                    continue
+                if out: return out
             except Exception:
-                pass
+                continue
         return None
 
     # ------------------------------------------------------------ vision (Gemini only)
@@ -167,46 +255,61 @@ class Brain:
     def ask(self, text):
         with self._lock: return self._ask_inner(text)
 
+    def _ask_gemini(self, text):
+        if not config.key_ok():
+            raise _BrainDown("no gemini key in .env")
+        if self.active != "gemini":
+            self.active = "gemini"; self.local_msgs = None; self.groq_msgs = None
+            try: self._new_gemini_chat()
+            except Exception: pass
+            self._show(); bus.log("info", "Back on Gemini")
+        last = None; quota = False
+        for attempt in range(len(self.models) + 1):
+            try:
+                return (self.chat.send_message(text).text or "").strip()
+            except Exception as e:
+                last = e; msg = str(e).lower()
+                if "api key" in msg or "api_key" in msg or ("permission" in msg and "denied" in msg):
+                    raise _BrainDown("gemini key invalid")
+                if _quota_error(e):
+                    quota = True; time.sleep(4)
+                self.mi = (self.mi + 1) % len(self.models)
+                try: self._new_gemini_chat()
+                except Exception: pass
+        if quota:
+            self.gemini_block_until = time.time() + 30 * 60
+            bus.log("info", "Gemini free limit reached - agla free brain try ho raha hai.")
+        raise _BrainDown(str(last)[:120])
+
     def _ask_inner(self, text):
         try: pc.extras.begin_turn(text)
         except Exception: pass
         s = self.s = settings.load()
-        mode = s["backend"]
-        use_local = mode == "ollama" or (mode == "auto" and time.time() < self.gemini_block_until)
-        if use_local and self.ollama_ready():
-            if self.active != "ollama":
-                self.active = "ollama"; self._show(); bus.log("info", "Local brain (Ollama) active")
-            try:
-                r = self._ask_local(text); self._remember(text, r); return r
-            except Exception as e:
-                bus.log("info", f"Local brain problem: {str(e)[:100]}")
-                if mode == "ollama": return "Local model me problem aayi. Ollama chal raha hai ya nahi check karo."
-        if self.active != "gemini":
-            self.active = "gemini"; self.local_msgs = None
-            try: self._new_gemini_chat()
-            except Exception: pass
-            self._show(); bus.log("info", "Back on Gemini")
         last = None
-        for attempt in range(len(self.models) + 1):
+        for name in active_chain(s["backend"]):
             try:
-                r = (self.chat.send_message(text).text or "").strip()
-                self._remember(text, r); return r
+                if name == "gemini":
+                    if time.time() < self.gemini_block_until: continue
+                    r = self._ask_gemini(text)
+                elif name == "groq":
+                    if not self.groq_ready(): continue
+                    r = self._ask_groq(text)
+                elif name == "opencode":
+                    if not self.opencode_ready(): continue
+                    r = self._ask_opencode(text)
+                elif name == "ollama":
+                    if not self.ollama_ready(): continue
+                    if self.active != "ollama":
+                        self.active = "ollama"; self._show(); bus.log("info", "Local brain (Ollama) active")
+                    r = self._ask_local(text)
+                else:
+                    continue
             except Exception as e:
-                last = e; msg = str(e).lower()
-                if "api key" in msg or "api_key" in msg or ("permission" in msg and "denied" in msg):
-                    return "Mujhe lagta hai Gemini key galat hai. .env file me key check karo."
-                if _quota_error(e):
-                    if mode == "auto" and self.ollama_ready():
-                        self.gemini_block_until = time.time() + 30 * 60
-                        bus.log("info", "Gemini free limit reached. Switching to local brain for 30 minutes.")
-                        return self._ask_inner(text)
-                    time.sleep(4)
-                self.mi = (self.mi + 1) % len(self.models)
-                try: self._new_gemini_chat(); self._show()
-                except Exception: pass
-        print(f"[brain error: {last}]")
-        tip = " Local brain setup kar do: bolo 'apne aap ko upgrade karo'." if _quota_error(last) else ""
-        return "Abhi internet ya Gemini limit ki problem hai. Thodi der baad try karo." + tip
+                last = e; bus.log("info", f"{name} brain unavailable: {str(e)[:80]}"); continue
+            if r:
+                self._remember(text, r); return r
+        tip = " Local brain setup kar do: bolo 'apne aap ko upgrade karo'." if last and _quota_error(last) else ""
+        return "Abhi koi bhi brain jawab nahi de pa raha (internet ya free-limit ki problem). Thodi der baad try karo." + tip
 
     def _remember(self, u, a):
         try: pc.extras.log_turn('user', u); pc.extras.log_turn('jarvis', a)
