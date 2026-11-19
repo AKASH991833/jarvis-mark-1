@@ -1,141 +1,83 @@
-# JARVIS - your free PC assistant
+# JARVIS MARK-1
 
-Speak in Hindi/English mix. Jarvis listens, thinks, talks back, and controls your PC.
-Everything here is FREE. No card. No plan. No payment.
+Your own Iron-Man-style voice assistant for Windows. Free. Yours.
+
+Speak in Hindi/English mix. Jarvis listens, thinks, talks back in a deep Jarvis-style voice, and controls your whole PC: apps, files, browser, mouse, keyboard, screen, email, software installs, reminders, music, and more.
+Everything here runs on FREE tools. No card. No plan. No payment.
+
+![JARVIS HUD](docs/screenshot-hud.png)
 
 ## Setup (only once)
 
-1. Install Python (free). Go to https://www.python.org/downloads/ , download it, open it.
-   On the FIRST screen tick the box "Add Python to PATH", then click Install.
-   (If Python is already installed, skip this.)
+1. Install Python (free) from https://www.python.org/downloads/ - on the FIRST screen tick "Add Python to PATH", then Install. (Skip if already installed.)
 2. Unzip the Jarvis folder (right click -> Extract All).
-3. Get your free Gemini key: open https://aistudio.google.com/apikey , login with Google,
-   click "Create API key", copy it. No card needed.
-4. Double-click `install.bat`. Wait 2-5 minutes. When it asks for the key, paste it
-   (right-click in the window to paste) and press Enter.
-5. Double-click `run.bat`. Jarvis says "Namaste". Now just speak!
+3. Get your free Gemini key: open https://aistudio.google.com/apikey, log in with Google, click "Create API key", copy it. No card needed.
+4. Double-click `install.bat`. Wait 2-5 minutes. When it asks for the key, paste it (right-click in the window) and press Enter.
+5. Double-click `run.bat`. Jarvis boots the HUD and says hello. Just speak!
 
-If the key was not saved: open the file `.env` with Notepad, paste the key after `GEMINI_API_KEY=`, save.
+Key not saved? Open `.env` in Notepad and paste it after `GEMINI_API_KEY=`.
 
 ## Every day
-Double-click `run.bat`. To stop: say "bye Jarvis", or close the window.
-Jarvis opens a dark window with a glowing circle. You can speak, or type in the box at the bottom.
-No microphone? Just type in the box, or double-click `run_text.bat`.
+
+Double-click `run.bat`. Stop with "bye Jarvis" or close the window.
+The dark window with the glowing arc reactor is your HUD: you can speak, or type in the box at the bottom.
+No mic? Double-click `run_text.bat` and type instead.
 
 ## Things you can say
+
 - "Chrome kholo" / "Notepad kholo" / "Calculator open karo"
-- "YouTube pe Arijit Singh ka gaana chalao"
+- "YouTube pe Arijit Singh ka gaana chalao" / "Arijit ka Tum Hi Ho chalao" / "next" / "pause"
 - "Google pe Linux interview questions search karo"
-- "Downloads folder kholo" / "Desktop pe kya kya files hain?"
-- "Mere PC me resume naam ki file dhundo"
-- "Screenshot lo" / "Screen pe kya dikh raha hai?"
-- "Volume badha do" / "Volume 40 kar do" / "Mute karo"
-- "Battery kitni hai?" / "PC ki RAM kitni use ho rahi hai?"
-- "10 minute baad yaad dilana ki paani peena hai"
-- "Notepad kholo aur usme meri application likho"
-- "Aaj ka mausam batao Mumbai ka"
-- "Gmail kholo"
+- "Downloads folder kholo" / "Downloads me badi files dikhao" / "Downloads arrange karo"
+- "Screenshot lo" / "Screen pe kya dikh raha hai?" / "Photo kheencho" (webcam, asks first)
+- "Volume badha do" / "Volume 40 kar do" / "Mute karo" / "Brightness 50 karo"
+- "Battery kitni hai?" / "PC ki RAM kitni use ho rahi hai?" / "Speed test karo"
+- "10 minute baad yaad dilana paani peena hai" / "Reminders dikhao" / "Reminder cancel karo"
+- "Chrome ko left karo" / "VS Code maximize karo" (window snapping)
+- "Clipboard history dikhao" / "copy item 2" (last 50 copied things)
+- "100 dollar kitne rupee?" / "Translate karo Hindi me: good morning"
+- "25 minute focus mode" (quiet work timer)
+- "Good morning" (weather + news + notes + battery briefing)
+- "Dictation shuru karo" (whatever you say gets typed) / "dictation band"
+- "Meeting mode start" / "meeting khatam" (notes in Documents/Jarvis-Meetings)
+- "VLC install karo" / "7zip uninstall karo" (free official winget, verifies after install)
+- "Settings me dark mode on karo" (Jarvis drives the mouse/keyboard like a human; slam the mouse into a screen corner to stop it)
+- "Kal shaam 6 baje meeting add karo" (opens Google Calendar pre-filled, you press Save)
+- "Naya tool banao jo ..." (Jarvis writes itself a new tool - asks you first, keeps a backup)
+- "Update check karo" (new version from GitHub)
 
-## Iron Man features (v1.2)
-- Boot sequence + HUD: glowing reactor, voice visualizer bars, live CPU/RAM/disk/battery, comms log, quick buttons.
-- Install software like a human: "VLC install karo", "Chrome install karo", "7zip uninstall karo". Jarvis searches with
-  Windows winget (free, official), asks you, installs, then checks it really installed. If Windows shows an admin "Yes/No" box, click Yes yourself.
-- Do things on screen like a human: "Settings me dark mode on karo", "installer me Next Next dabao". Jarvis looks at the screen,
-  clicks and types step by step. Move the mouse into a screen corner to stop it instantly.
-- Windows: "Chrome ko samne lao", "Notepad minimize karo", "desktop dikhao".
-- News, Wikipedia, read a web page, notes, alarms, routines ("morning routine chalao", "study routine banao: chrome, youtube.com, notepad").
-- Housekeeping: "Downloads folder arrange karo", "temp files saaf karo", "kaunsa program sabse zyada RAM le raha hai".
-- Every action Jarvis takes is saved in `data/action_log.txt`.
+## The HUD
 
-## The HUD (v1.3)
-Arc-reactor look like the Iron Man desktop: glowing blue ring, gauges (CPU/RAM/HDD/POWER), weather (set `WEATHER_CITY` in `.env`),
-headlines, notes, quick links, comms log. Effects: holographic boot, orbiting particles, voice waveform ring, sliding panels,
-task progress ring (fills while Jarvis works), screen-edge glow while listening.
+Arc-reactor core with orbiting particles, holographic boot sequence, live voice waveform ring, gauges (CPU / RAM / HDD / battery), weather + 3-day forecast, headlines, notes, quick links, comms log, task progress ring, screen-edge glow while listening.
+Buttons at the bottom: **MIC LIVE/MUTED** and **PC ARMED/LOCKED** (the big red switch: Jarvis cannot touch the PC while LOCKED).
 
-## Self-upgrade and research (v1.3)
-- Free offline brain: say "apne aap ko upgrade karo" (or "local brain setup karo"). Jarvis checks your PC (RAM/CPU/GPU/disk),
-  picks a model that fits (small Llama for low RAM), asks you, installs Ollama (free), downloads the model, and turns on auto mode.
-- Auto mode: Gemini first. When the Gemini free limit ends, Jarvis switches to the local brain by itself, then returns to Gemini after 30 minutes.
-  Force a brain by voice: "brain ollama karo" / "brain gemini karo" / "brain auto karo". Ask "brain status".
-- Local models are weaker, and weaker in Hindi, and they do not see the screen. It is a backup, not a replacement.
-- Research mode: say "naye free tools dhundo" or "research karo voice assistants ke upgrades". Jarvis searches GitHub, Hacker News and the
-  Ollama library and tells you ideas. It never installs anything without asking you.
+## Safety (always)
 
-## Big red switches
-- HUD button "PC CONTROL: ARMED/LOCKED": click to LOCK. Jarvis then cannot touch your PC at all.
-- "MIC: LIVE/MUTED" button turns off listening.
+Jarvis ALWAYS asks ("haan" or "nahi") before: deleting files (they go to the Recycle Bin), installing or removing programs, downloading files, taking over mouse/keyboard, shutdown/restart, closing apps, moving/overwriting files, running commands, sending email or WhatsApp, taking a webcam photo, or changing its own code.
+Every action is saved in `data/action_log.txt`. Self-changes are backed up in `data/backups/` - "last change undo karo" restores them.
 
-## Safety
-Jarvis ALWAYS asks first ("haan" or "nahi") before: deleting files (they go to Recycle Bin), installing or removing programs, downloading files, taking over mouse/keyboard for a task,
-shutdown/restart, closing apps, moving/overwriting files, running commands, sending email or WhatsApp.
+## Optional free upgrades (in `.env`)
 
-## Better hearing (optional, free)
-Default: Jarvis hears you using Gemini (same key, nothing extra).
-For Whisper (more accurate Hindi): get a free key at https://console.groq.com/keys
-(no card), paste in `.env` after `GROQ_API_KEY=`. Done - Jarvis uses it automatically.
+- **Better Hindi hearing**: free Groq key at https://console.groq.com/keys (no card) -> `GROQ_API_KEY=` (Whisper, more accurate than Gemini hearing)
+- **Voice**: `GEMINI_VOICE=Alnilam` (deep, default) or Achird / Algieba / Charon / Orus. Free backup voice when Gemini is busy: `VOICE=hi-IN-MadhurNeural` (male) or hi-IN-SwaraNeural (female)
+- **Offline backup brain**: say "apne aap ko upgrade karo" - Jarvis checks your PC, installs Ollama (free), downloads a model that fits your RAM, and auto-switches when the Gemini free limit ends
+- **Gmail read/send**: Google Account -> Security -> 2-Step Verification -> App passwords -> fill `GMAIL_ADDRESS=` and `GMAIL_APP_PASSWORD=`
+- **Google Calendar read**: Calendar settings -> Integrate calendar -> Secret address in iCal format -> `GCAL_ICAL_URL=`
+- **Phone remote (Telegram)**: message @BotFather, `/newbot`, paste the token in `.env` (`TELEGRAM_BOT_TOKEN=`), message your bot, paste the chat id it replies (`TELEGRAM_CHAT_ID=`). Commands: /status /shot /lock /shutdown /open /download /say /note /ask
+- **Face greeting**: `FACE_GREETING=true` (local OpenCV, nothing saved or uploaded)
+- **Voice gate**: `VOICE_GATE=pin` (say "jarvis unlock 1 2 3 4"), `voiceprint` (say "enroll voice" once), or `both`. The voiceprint check is basic and local, not bank-grade; typing in the window is never blocked.
 
-## Voice
-Jarvis speaks with the Gemini voice "Achird" (free, same key). Free Gemini voice has small limits, so when it is busy
-Jarvis automatically switches to the free backup voice (Microsoft Hindi "Madhur") for 10 minutes, then tries Achird again.
-In `.env`: `TTS_ENGINE=auto` (default), `gemini` (only Achird) or `edge` (only backup).
-Backup voice: `VOICE=hi-IN-MadhurNeural` (male) or `VOICE=hi-IN-SwaraNeural` (female).
+## Honest limits
 
-## Gmail read/send (optional, free)
-Opening Gmail in browser works already. To let Jarvis read/send mail by voice:
-1. Google Account -> Security -> turn on 2-Step Verification.
-2. Search "App passwords" in your Google account, create one named Jarvis, copy the 16 letters.
-3. In `.env` fill `GMAIL_ADDRESS=` and `GMAIL_APP_PASSWORD=`.
+- Free Gemini has per-minute/per-day limits. When it runs out, Jarvis says so and (if you set up Ollama) switches to the local brain for 30 minutes. Local models are weaker, and weaker in Hindi.
+- Jarvis controls the PC only while it is running. It cannot wake a sleeping PC or unlock Windows.
+- Needs internet for hearing, thinking and voice (except the optional local brain).
+- Windows admin popups ("Yes/No") during installs still need your click.
 
-## Problems?
-- "Gemini key galat": check the key in `.env`, no spaces.
-- No voice heard: needs internet (voice is made online, free). Check speaker volume.
-- Jarvis does not hear you: Windows Settings -> Privacy -> Microphone -> allow desktop apps. Set your mic as default.
-- "Limit" message: free Gemini has a per-minute limit. Wait a minute.
-- Say `WAKE_WORD_ENABLED=true` in `.env` if Jarvis reacts to TV/other voices; then start with "Jarvis ...".
+## Development
 
-## Limits (honest)
-Free Gemini allows limited requests per minute/day. Jarvis controls the PC only while it is running.
+- `run_tests.bat` - 22 offline tests (no mic/screen/internet needed)
+- GitHub Actions runs the tests on Windows + Linux on every push
+- Self-update: "update check karo" pulls the newest version from this repo (public repo: works as-is; private repo: put GITHUB_TOKEN in `.env`)
 
-## New in v1.4
-
-**Feature Pack 2** (just ask by voice):
-- "Good morning" / "morning briefing" - weather, news, notes, battery
-- "Dictation shuru karo" - whatever you say is typed in the active app. Say "dictation band" to stop
-- "Wo PDF dikhao jisme Linux commands the" - searches INSIDE your files (PDF search uses pypdf, installed as an optional extra)
-- "Is website pe nazar rakho" - tells you when a page changes
-- "Meeting mode start" / "meeting khatam" - notes saved in Documents/Jarvis-Meetings (it hears through the microphone, so keep the speaker on)
-- "Aaj kitna time kis app me gaya" - usage report (tracking starts when Jarvis runs)
-- PC watchdog - warns you about full disk, low battery, high RAM, heat
-- "Arijit ka Tum Hi Ho chalao", "next", "pause" - hands-free music
-
-**Self-improvement** (Jarvis NEVER changes itself without your yes):
-- "Naya tool banao jo ..." - Jarvis writes new code, shows you, asks, saves a backup, then adds it
-- "Apna bug fix karo" - reads data/errors.log, proposes a fix to one file, asks you, backs up, rolls back if it breaks
-- "Update check karo" / "update karo" - new version from GitHub (private repo: put GITHUB_TOKEN in .env, or make the repo public)
-- "Kaunse kaam baar-baar karta hoon?" - learns repeated tasks, offers a shortcut; "run skill NAME" replays it
-- "Last change undo karo" - restores the backup. Everything is listed in data/changes.log ("change log dikhao")
-
-## New in v1.5
-- **Google Calendar**: "kal shaam 6 baje meeting add karo" opens Google Calendar with the event filled in, you press Save (no sign-in setup needed). To also READ your events, paste your calendar's secret iCal address in .env as GCAL_ICAL_URL.
-- **Face greeting** (optional): set FACE_GREETING=true in .env. The webcam only checks if someone is in front of the PC and greets you when you come back after 20+ minutes. Local OpenCV, nothing is saved or uploaded.
-- **Better memory**: Jarvis keeps a local database (data/memory.db) of your preferences and past chats. Say "yaad rakh, mujhe ... pasand hai" or "pichli baar maine kya kaam kiya tha?".
-
-## New in v1.6
-
-### Phone remote (Telegram, free) - one setup
-1. On your phone open Telegram, search **@BotFather**, send `/newbot`, choose a name. It gives you a long **token**.
-2. Open the `.env` file, paste it after `TELEGRAM_BOT_TOKEN=` and restart Jarvis.
-3. Send any message to your new bot. It replies with your **chat id**. Paste it after `TELEGRAM_CHAT_ID=` in `.env` and restart. From now on the bot obeys ONLY your chat; strangers are ignored.
-Commands: /status /shot (screenshot) /lock /shutdown /open /download /say /note /ask (any Jarvis command). Dangerous ones ask "Reply YES or NO" on Telegram first. The PC must be on and Jarvis running; this cannot wake a PC that is off.
-
-### Proactive agent
-- "Roz 10:30 baje standup add karo" (recurring): 5 minutes before, Jarvis speaks a heads-up, opens the app/site and reads your note.
-- Say "kal subah email bhejna hai": Jarvis remembers it and nudges you (up to 3 times, 1 hour apart) until you say it is done.
-- Optional: set PROACTIVE_BROWSING=true and when you stay on one browser page 2+ minutes it OFFERS a short summary. It only suggests. It reads your browser window title, nothing else, and nothing leaves your PC except the topic lookup you accept.
-
-### Voice gate (honest limits)
-Set VOICE_GATE in `.env`: `off` (default), `pin`, `voiceprint` or `both`.
-- **pin**: commands are locked until you say "jarvis unlock 1 2 3 4" (your VOICE_PIN). Unlock lasts VOICE_GATE_MINUTES. This is the reliable mode. Anyone who hears your PIN can use it.
-- **voiceprint**: say "enroll voice" once. Afterwards only a similar-sounding voice is accepted. This is a basic free local check, NOT bank-grade: noise, a cold, a different mic or a recording of your voice can fool it or lock you out. Tune VOICE_GATE_THRESHOLD (lower = easier).
-- **both**: PIN unlock AND a matching voice.
-Typing commands in the window is never blocked. The gate also covers yes/no confirmations. It cannot unlock Windows.
+Built with love by Akash and his Instinct. MIT license - see LICENSE.

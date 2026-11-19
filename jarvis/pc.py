@@ -326,10 +326,60 @@ def load_memory() -> str:
         except Exception: pass
     return ""
 
+REMINDERS = config.DATA_DIR / "reminders.json"
+
+def _load_reminders():
+    try: return json.loads(REMINDERS.read_text("utf-8"))
+    except Exception: return []
+def _save_reminders(rs):
+    try: REMINDERS.write_text(json.dumps(rs, ensure_ascii=False, indent=1), "utf-8")
+    except Exception: pass
+
+def _fire_reminder(rid, message):
+    notify(f"Reminder: {message}")
+    rs = [r for r in _load_reminders() if r.get("id") != rid]
+    _save_reminders(rs)
+
 def set_reminder(minutes: float, message: str) -> str:
-    """Remind the user (by voice) after N minutes. Works as a timer too."""
-    threading.Timer(minutes * 60, lambda: notify(f"Reminder: {message}")).start()
+    """Remind the user (by voice) after N minutes. Works as a timer too. Survives a Jarvis restart."""
+    rid = f"{time.time():.0f}"
+    rs = _load_reminders()
+    rs.append({"id": rid, "message": message, "at": time.time() + minutes * 60})
+    _save_reminders(rs)
+    t = threading.Timer(minutes * 60, lambda: _fire_reminder(rid, message)); t.daemon = True; t.start()
     return f"Reminder set for {minutes} minutes: {message}"
+
+def list_reminders() -> str:
+    """List pending reminders and timers."""
+    rs = _load_reminders()
+    if not rs: return "Koi reminder pending nahi hai."
+    out = []
+    for r in rs:
+        left = max(0, int((r["at"] - time.time()) / 60))
+        out.append(f"{r['id']}: {r['message']} ({left} min baaki)")
+    return "Pending reminders:\n" + "\n".join(out)
+
+def cancel_reminder(text_or_id: str = "") -> str:
+    """Cancel a pending reminder by its id (from list_reminders) or words in its message. Empty cancels the soonest one."""
+    rs = _load_reminders()
+    if not rs: return "Koi reminder pending nahi hai."
+    q = (text_or_id or "").strip().lower()
+    hit = None
+    if not q:
+        hit = min(rs, key=lambda r: r["at"])
+    else:
+        for r in rs:
+            if r["id"] == q or q in r["message"].lower(): hit = r; break
+    if not hit: return "Aisa reminder nahi mila."
+    _save_reminders([r for r in rs if r["id"] != hit["id"]])
+    return f"Reminder cancel ho gaya: {hit['message']}"
+
+def reschedule_saved_reminders():
+    """Called once at startup: re-arm reminders saved earlier (fires late ones right away)."""
+    now = time.time()
+    for r in _load_reminders():
+        delay = max(1.0, r["at"] - now)
+        t = threading.Timer(delay, lambda rid=r["id"], m=r["message"]: _fire_reminder(rid, m)); t.daemon = True; t.start()
 
 # ---------------------------------------------------------------- messaging / email (always confirm)
 def send_whatsapp(phone_with_country_code: str, message: str) -> str:
@@ -766,6 +816,126 @@ def research_upgrades(topic: str = "") -> str:
     out.append("NOTE: these are only suggestions. Check licenses/safety, and ask the user before installing anything.")
     return "\n".join(out)
 
+# ---------------------------------------------------------------- v2.0 power tools
+CLIP_HIST = config.DATA_DIR / "clipboard_history.json"
+_clip = {"last": "", "on": False}
+
+def _clip_loop():
+    import pyperclip
+    while True:
+        time.sleep(1.5)
+        try:
+            t = pyperclip.paste() or ""
+            if t and t != _clip["last"]:
+                _clip["last"] = t
+                h = json.loads(CLIP_HIST.read_text("utf-8")) if CLIP_HIST.exists() else []
+                h.append({"t": time.strftime("%H:%M"), "text": t[:2000]})
+                CLIP_HIST.write_text(json.dumps(h[-50:], ensure_ascii=False, indent=1), "utf-8")
+        except Exception: pass
+
+def start_clipboard_watch():
+    if not _clip["on"]:
+        _clip["on"] = True; threading.Thread(target=_clip_loop, daemon=True).start()
+
+def clipboard_history(action: str = "list", index: int = 0) -> str:
+    """Clipboard history: action 'list' shows recent copied items, 'copy' copies item number <index> back (1 = latest). Starts remembering everything you copy while Jarvis runs."""
+    start_clipboard_watch()
+    h = json.loads(CLIP_HIST.read_text("utf-8")) if CLIP_HIST.exists() else []
+    if action == "copy" and index > 0:
+        if index > len(h): return "Itna purana clipboard item nahi hai."
+        import pyperclip; pyperclip.copy(h[-index]["text"]); _clip["last"] = h[-index]["text"]
+        return f"Item {index} wapas copy ho gaya."
+    if not h: return "Abhi kuch copy nahi hua (history Jarvis chalne se yaad rehti hai)."
+    return "Clipboard history (newest first):\n" + "\n".join(f"{i + 1}. [{e['t']}] {e['text'][:60]}" for i, e in enumerate(h[-10:][::-1]))
+
+def snap_window(title_contains: str, side: str = "left") -> str:
+    """Snap a window to half/quarter of the screen: side = left | right | maximize | minimize. Example: 'chrome ko left karo'."""
+    r = focus_window(title_contains)
+    if r.startswith(("No such", "Could not")): return r
+    import pyautogui
+    time.sleep(0.4)
+    keys = {"left": ("win", "left"), "right": ("win", "right"), "maximize": ("win", "up"), "minimize": ("win", "down")}
+    k = keys.get(side.lower())
+    if not k: return "Side must be left, right, maximize or minimize."
+    pyautogui.hotkey(*k); return f"{title_contains} -> {side}"
+
+def take_webcam_photo() -> str:
+    """Take one photo from the webcam and save it in Pictures/Jarvis. ALWAYS asks permission first. Needs opencv-python."""
+    if not confirm("Webcam se ek photo kheenchoon?" ): return "User said no."
+    try:
+        import cv2
+    except Exception:
+        return "Webcam ke liye 'pip install opencv-python' chahiye (install.bat dobara chalao)."
+    config.SHOT_DIR.mkdir(parents=True, exist_ok=True)
+    cap = cv2.VideoCapture(0)
+    ok, frame = cap.read(); cap.release()
+    if not ok: return "Webcam nahi mil paya (koi aur app use kar raha hai?)."
+    f = config.SHOT_DIR / time.strftime("photo_%Y%m%d_%H%M%S.jpg")
+    cv2.imwrite(str(f), frame)
+    return f"Photo saved: {f}"
+
+def currency_convert(amount: float, from_currency: str = "USD", to_currency: str = "INR") -> str:
+    """Convert money between currencies with live rates (free). Example: '100 dollar kitne rupee'."""
+    try:
+        r = urllib.request.urlopen(urllib.request.Request("https://open.er-api.com/v6/latest/" + urllib.parse.quote(from_currency.upper()), headers={"User-Agent": "Jarvis"}), timeout=15)
+        d = json.loads(r.read().decode())
+        rate = d.get("rates", {}).get(to_currency.upper())
+        if not rate: return f"'{to_currency}' currency samajh nahi aayi."
+        return f"{amount:g} {from_currency.upper()} = {amount * rate:,.2f} {to_currency.upper()} (rate {rate:g})"
+    except Exception as e:
+        return f"Rate nahi mil paya: {e}"
+
+def translate_text(text: str, target_language: str = "Hindi") -> str:
+    """Translate text to another language (free). Example: 'translate karo Hindi me: good morning'."""
+    langs = {"hindi": "hi", "english": "en", "hinglish": "hi", "marathi": "mr", "gujarati": "gu", "punjabi": "pa",
+             "bengali": "bn", "tamil": "ta", "telugu": "te", "kannada": "kn", "french": "fr", "german": "de", "spanish": "es", "japanese": "ja"}
+    code = langs.get(target_language.lower().strip(), target_language.lower().strip())
+    try:
+        u = "https://api.mymemory.translated.net/get?" + urllib.parse.urlencode({"q": text[:500], "langpair": f"autodetect|{code}"})
+        d = json.loads(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Jarvis"}), timeout=15).read().decode())
+        out = (d.get("responseData") or {}).get("translatedText", "")
+        return out or "Translate nahi ho paya."
+    except Exception as e:
+        return f"Translate nahi ho paya: {e}"
+
+def internet_speed_test() -> str:
+    """Quick internet download speed test (downloads a small test file, free)."""
+    try:
+        import requests
+        t0 = time.time(); got = 0
+        with requests.get("https://speed.cloudflare.com/__down?bytes=15000000", stream=True, timeout=30) as r:
+            for chunk in r.iter_content(1 << 18):
+                got += len(chunk)
+                if time.time() - t0 > 15: break
+        secs = max(0.5, time.time() - t0)
+        return f"Download speed about {got * 8 / secs / 1e6:.1f} Mbps ({got / 1e6:.1f} MB in {secs:.0f}s)."
+    except Exception as e:
+        return f"Speed test nahi ho paya: {e}"
+
+def find_large_files(folder: str = "~", min_mb: int = 200, limit: int = 12) -> str:
+    """Find the biggest files in a folder (default: whole home folder) to free disk space. Example: 'bade files dikhao Downloads me'."""
+    root = _p(folder); hits = []
+    for dp, dn, fn in os.walk(root):
+        dn[:] = [d for d in dn if not d.startswith(".") and d.lower() not in ("appdata", "node_modules", "$recycle.bin")]
+        for f in fn:
+            try:
+                s = os.path.getsize(os.path.join(dp, f))
+                if s >= min_mb * 2**20: hits.append((s, os.path.join(dp, f)))
+            except Exception: pass
+    hits.sort(reverse=True)
+    if not hits: return f"{root} me {min_mb} MB se badi file nahi mili."
+    return f"Big files in {root}:\n" + "\n".join(f"{s / 2**20:.0f} MB - {p}" for s, p in hits[:limit])
+
+_focus = {"until": 0.0}
+def focus_mode(minutes: float = 25) -> str:
+    """Start a focus session: Jarvis announces it and stays quiet (no reminders/watchdog nudges) until the time ends. Example: '25 minute focus mode'."""
+    _focus["until"] = time.time() + minutes * 60
+    t = threading.Timer(minutes * 60, lambda: notify(f"Focus time poora hua {config.USER_NAME}. Break lo, paani piyo.")); t.daemon = True; t.start()
+    return f"Focus mode on: {minutes:g} minute. Main disturb nahi karoonga. All the best!"
+
+def focus_active():
+    return time.time() < _focus["until"]
+
 _RAW = [open_app, close_app, open_website, google_search, youtube_search, play_on_youtube, open_gmail, get_weather,
         open_path, list_folder, find_files, read_text_file, write_text_file, create_folder, copy_path, move_path, delete_path,
         take_screenshot, describe_screen, type_text, press_keys, click_at, scroll, get_clipboard, set_clipboard,
@@ -775,7 +945,9 @@ _RAW = [open_app, close_app, open_website, google_search, youtube_search, play_o
         find_and_click, gui_task, list_windows, focus_window, window_action, show_desktop,
         get_news, wikipedia_summary, read_webpage, add_note, read_notes, save_routine, run_routine, top_processes,
         network_info, clean_temp_files, organize_folder, open_settings_page, set_alarm,
-        system_specs, upgrade_brain_to_local, set_brain_mode, brain_status_report, research_upgrades]
+        system_specs, upgrade_brain_to_local, set_brain_mode, brain_status_report, research_upgrades,
+        list_reminders, cancel_reminder, clipboard_history, snap_window, take_webcam_photo,
+        currency_convert, translate_text, internet_speed_test, find_large_files, focus_mode]
 from . import extras
 _RAW += extras.EXTRA_TOOLS
 from . import remote
@@ -783,6 +955,7 @@ _RAW += remote.REMOTE_TOOLS
 
 AUDIT = config.DATA_DIR / "action_log.txt"
 CONTROL = {"open_app", "close_app", "open_path", "delete_path", "move_path", "copy_path", "write_text_file", "type_text", "press_keys",
+           "snap_window", "take_webcam_photo",
            "click_at", "scroll", "run_shell_command", "power", "install_software", "uninstall_software", "download_file", "run_installer",
            "enroll_voice", "dictation_mode", "meeting_mode", "music_control", "play_music", "create_new_tool", "self_heal", "undo_last_change", "apply_update", "save_skill", "run_skill", "find_and_click", "gui_task", "focus_window", "window_action", "show_desktop", "volume", "brightness", "media_control",
            "upgrade_brain_to_local", "clean_temp_files", "organize_folder", "send_whatsapp", "send_email", "run_routine", "take_screenshot", "describe_screen", "open_settings_page", "create_folder"}

@@ -215,6 +215,7 @@ def _dog_loop():
     while True:
         time.sleep(60)
         try:
+            if _pc().focus_active(): continue          # focus mode: no nudges
             du = psutil.disk_usage(str(Path.home().anchor or "/"))
             if du.percent > 90: warn("disk", f"Dhyan do, disk {int(du.percent)} percent bhari hai. Safai karoon?")
             if psutil.virtual_memory().percent > 92: warn("ram", "RAM almost full hai, PC slow ho sakta hai.")

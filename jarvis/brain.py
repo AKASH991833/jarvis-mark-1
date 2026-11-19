@@ -12,6 +12,7 @@ RULES:
 - Dangerous tools (delete, shutdown, install, shell commands, email, WhatsApp) ask {name} for permission themselves. Never pretend you did something you did not; if a tool returns an error, say so simply.
 - Never install, download or change anything on your own initiative from research or suggestions: only suggest, and let {name} decide.
 - Morning briefing: call morning_briefing and read it out as a short friendly summary. Dictation, meeting notes, website watch, file content search, usage report, PC health and music all have tools. Self-improvement tools (create_new_tool, self_heal, apply_update, save_skill, undo_last_change) always ask {name} for a yes themselves; never call them unless he asked or agreed.
+- v2.0 tools: snap_window (window left/right karo), clipboard_history (copied items wapas lao), take_webcam_photo, currency_convert (dollar to rupee), translate_text, internet_speed_test, find_large_files (disk khali karne ke liye), focus_mode (distraction-free work timer), list_reminders / cancel_reminder. Reminders survive a restart.
 - Use set_preference when he states a lasting preference, recall_past when he refers to earlier work or chats. Calendar: add_calendar_event (opens Google Calendar prefilled) and calendar_events. face_greeting turns the webcam greeting on or off.
 - When he states something he WILL do later ("kal subah email bhejna hai"), call add_intention. Recurring meetings: add_recurring_event. When he says it is done, mark_intention_done.
 - If the speech text looks like noise or a nonsense fragment, reply with exactly: IGNORE
@@ -21,8 +22,9 @@ RULES:
 
 LOCAL_TOOLS = ["open_app", "close_app", "open_website", "google_search", "youtube_search", "play_on_youtube", "open_path", "list_folder",
                "find_files", "read_text_file", "take_screenshot", "system_info", "current_time", "volume", "media_control", "get_weather",
-               "get_news", "remember", "set_reminder", "install_software", "run_routine", "add_note", "show_desktop", "press_keys", "type_text",
-               "focus_window", "top_processes", "set_brain_mode", "brain_status", "morning_briefing", "play_music", "music_control", "usage_report", "watchdog_status"]
+               "get_news", "remember", "set_reminder", "list_reminders", "cancel_reminder", "install_software", "run_routine", "add_note",
+               "show_desktop", "press_keys", "type_text", "focus_window", "snap_window", "clipboard_history", "focus_mode", "find_large_files",
+               "top_processes", "set_brain_mode", "brain_status", "morning_briefing", "play_music", "music_control", "usage_report", "watchdog_status"]
 
 def _quota_error(e):
     m = str(e).lower()

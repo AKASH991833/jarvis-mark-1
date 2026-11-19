@@ -5,6 +5,7 @@ def _log(role, text):
 log = _log
 state = lambda s: None      # idle | listening | thinking | speaking
 level = lambda v: None      # mic loudness 0..1 (for the visualizer)
-mic_muted = False           # set by the HUD mic button
-locked = False              # set by the HUD ARMED/LOCKED switch (kill switch for PC control)
-info = {"voice": "-", "model": "-", "stt": "-"}   # shown in HUD readouts
+# shared flags (the HUD replaces log/state/level with its own). Defaults make console mode work.
+locked = False              # PC control kill switch (HUD button)
+mic_muted = False           # mic mute (HUD button)
+info = {}                   # small status strings for the HUD (brain, voice, ...)

@@ -12,6 +12,8 @@ def assistant(text_mode, typed):
     from jarvis.brain import Brain
     from jarvis.speak import speak, set_client
     brain = Brain(); set_client(brain.client)
+    try: pc.reschedule_saved_reminders(); pc.start_clipboard_watch()
+    except Exception: pass
     if not text_mode:
         from jarvis import listen
 

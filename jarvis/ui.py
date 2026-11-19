@@ -46,7 +46,7 @@ class App:
         bus.state = lambda s: self.q.put(("state", s, ""))
         bus.level = lambda v: setattr(self, "target", v)
         self.boot_lines = ["J.A.R.V.I.S MARK-1 KERNEL ........... OK", "NEURAL LINK (GEMINI) ............. ONLINE",
-                           "LOCAL BRAIN (OLLAMA) ............. STANDBY", "VOICE SYNTHESIS (ACHIRD) ......... READY",
+                           "LOCAL BRAIN (OLLAMA) ............. STANDBY", "VOICE SYNTHESIS .................. READY",
                            "SPEECH RECOGNITION ............... ARMED", f"PC CONTROL MODULES ................ {n_tools} LOADED",
                            "SAFETY LOCKS ..................... ACTIVE", "ALL SYSTEMS NOMINAL. WELCOME BACK."]
         threading.Thread(target=self._bg_fetch, daemon=True).start()
@@ -356,7 +356,7 @@ class App:
         cv = self.cv; now = datetime.datetime.now()
         cv.create_line(0, 62, W, 62, fill=hexc(BLUE, .35))
         self._text(18, 10, "J.A.R.V.I.S", "#46e1ff", 17, "nw", True)
-        self._text(18, 38, "MARK-1  //  PERSONAL INTELLIGENCE SYSTEM", "#4d86a8", 8)
+        self._text(18, 38, "MARK-1 v2.0  //  PERSONAL INTELLIGENCE SYSTEM", "#4d86a8", 8)
         if sc:
             x = 290
             for lab, v in (("CPU", sc["cpu"]), ("RAM", sc["ram"]), ("HDD", sc["disk"])):

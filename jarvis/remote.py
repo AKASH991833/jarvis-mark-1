@@ -182,6 +182,7 @@ def _topic_watch():
         time.sleep(60)
         try:
             w = gw.getActiveWindow(); t = (w.title if w else "") or ""
+            if _pc().focus_active(): continue
             if not re.search(r"(Chrome|Edge|Firefox)", t): continue
             t = re.sub(r"\s*[-\u2013\u2014]\s*(Google Chrome|Microsoft Edge|Mozilla Firefox).*$", "", t).strip()
             if t != _topic["title"]: _topic.update(title=t, since=time.time()); continue
@@ -247,7 +248,7 @@ def gate_check(text, wav):
     pin = os.getenv("VOICE_PIN", "").strip()
     now = time.time()
     # PIN unlock phrase: "jarvis unlock 1 2 3 4"
-    if m in ("pin", "both") and pin and re.search(r"(unlock|अनलॉक|khol)", low):
+    if m in ("pin", "both") and pin and re.search(r"\b(unlock|अनलॉक|khol)\b", low):
         if _norm_digits(low) == pin or _norm_digits(low).endswith(pin):
             _gate["until"] = now + float(os.getenv("VOICE_GATE_MINUTES", "30")) * 60
             return False, "Unlock ho gaya. Ab tumhare commands chalenge."
@@ -255,7 +256,11 @@ def gate_check(text, wav):
     ok_print = True
     if m in ("voiceprint", "both"):
         pr = _jl(PRINT, None)
-        if not pr: return True, None if now - _gate["warned"] < 600 else _warn("Voiceprint abhi bana nahi, gate band hai. 'enroll voice' bolo.")
+        if not pr:
+            if now - _gate["warned"] >= 600:
+                _gate["warned"] = now
+                return True, "Voiceprint abhi bana nahi, gate band hai. 'enroll voice' bolo."
+            return True, None
         f = _feat(wav)
         thr = float(os.getenv("VOICE_GATE_THRESHOLD", "0.80"))
         ok_print = f is not None and _cos(f, __import__("numpy").array(pr["mean"])) >= thr
