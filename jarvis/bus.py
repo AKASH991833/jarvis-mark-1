@@ -8,4 +8,5 @@ level = lambda v: None      # mic loudness 0..1 (for the visualizer)
 # shared flags (the HUD replaces log/state/level with its own). Defaults make console mode work.
 locked = False              # PC control kill switch (HUD button)
 mic_muted = False           # mic mute (HUD button)
+stop = False                # set by 'ruk jao Jarvis' - running plans check this between steps
 info = {}                   # small status strings for the HUD (brain, voice, ...)

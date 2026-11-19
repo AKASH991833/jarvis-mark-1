@@ -14,6 +14,7 @@ import jarvis.bus as bus
 import jarvis.pc as pc
 import jarvis.extras as extras
 import jarvis.remote as remote
+import jarvis.agent as agent
 import main as main_mod
 
 
@@ -171,6 +172,138 @@ class TestMemory(unittest.TestCase):
         pc.MEMORY = config.MEMORY_FILE
         self.assertEqual(pc.remember("favourite colour neela hai"), "Remembered.")
         self.assertIn("neela", pc.load_memory())
+
+
+class TestAgent(unittest.TestCase):
+    """v2.1 multi-step control: planner, offline parser, executor, WhatsApp safety."""
+    def setUp(self):
+        self._dry = agent.DRY_RUN
+        self._gen = agent.gen
+        self._confirm = pc.confirm
+        agent.DRY_RUN = True
+        agent.gen = lambda prompt: None          # no brain -> offline parser path
+        agent.clear_stop()
+        bus.locked = False
+    def tearDown(self):
+        agent.DRY_RUN = self._dry
+        agent.gen = self._gen
+        pc.confirm = self._confirm
+        agent.clear_stop()
+
+    # ---------------- offline Hinglish parser
+    def test_parse_chrome_youtube_single_sentence(self):
+        steps = agent.parse_steps_local("chrome kholke youtube pe kesariya chalao")
+        self.assertEqual(steps, [{"action": "open_app", "name": "chrome"},
+                                 {"action": "play_youtube", "query": "kesariya"}])
+    def test_parse_chained_youtube(self):
+        steps = agent.parse_steps_local("youtube pe tum hi ho chalao")
+        self.assertEqual(steps, [{"action": "play_youtube", "query": "tum hi ho"}])
+    def test_parse_two_clauses(self):
+        steps = agent.parse_steps_local("chrome kholo aur google pe linux questions search karo")
+        self.assertEqual(steps, [{"action": "open_app", "name": "chrome"},
+                                 {"action": "search_google", "query": "linux questions"}])
+    def test_parse_whatsapp_by_name(self):
+        steps = agent.parse_steps_local("whatsapp pe rahul ko message karo happy birthday")
+        self.assertEqual(steps, [{"action": "whatsapp", "contact": "rahul", "message": "happy birthday", "send": True}])
+    def test_parse_whatsapp_with_enter_press(self):
+        steps = agent.parse_steps_local("whatsapp pe mummy ko aaj der se aaunga likh do aur enter daba do")
+        self.assertEqual(steps, [{"action": "whatsapp", "contact": "mummy", "message": "aaj der se aaunga", "send": True}])
+    def test_parse_whatsapp_dont_send(self):
+        steps = agent.parse_steps_local("whatsapp pe rahul ko hello likho mat bhejo")
+        self.assertEqual(steps[0]["send"], False)
+        self.assertEqual(steps[0]["message"], "hello")
+    def test_parse_phone_contact(self):
+        steps = agent.parse_steps_local("whatsapp pe 919876543210 ko message karo hello ji")
+        self.assertEqual(steps[0]["contact"], "919876543210")
+        self.assertEqual(steps[0]["message"], "hello ji")
+    def test_parse_unknown_is_empty(self):
+        self.assertEqual(agent.parse_steps_local("aaj mausam kaisa hai"), [])
+    def test_parse_whatsapp_open_karke(self):
+        steps = agent.parse_steps_local("chrome open karo, whatsapp open karke rahul ko message karo happy birthday aur enter press karo")
+        self.assertEqual(steps, [{"action": "open_app", "name": "chrome"},
+                                 {"action": "whatsapp", "contact": "rahul", "message": "happy birthday", "send": True}])
+    def test_parse_chrome_then_two_more(self):
+        steps = agent.parse_steps_local("chrome kholke google pe jarvis github search karo aur notepad kholo")
+        self.assertEqual([s["action"] for s in steps], ["open_app", "search_google", "open_app"])
+        self.assertEqual(steps[1]["query"], "jarvis github")
+
+    # ---------------- brain-written JSON plan
+    def test_plan_json_parsing(self):
+        agent.gen = lambda prompt: 'Sure! Here is the plan:\n[{"action":"open_app","name":"chrome"},{"action":"play_youtube","query":"kesariya"},{"action":"hack"}]'
+        steps = agent.plan_steps("chrome kholke kesariya chalao")
+        self.assertEqual([s["action"] for s in steps], ["open_app", "play_youtube"])  # invalid action dropped
+    def test_plan_bad_json_falls_back(self):
+        agent.gen = lambda prompt: "I cannot do that"
+        steps = agent.plan_steps("youtube pe lofi chalao")
+        self.assertEqual(steps, [{"action": "play_youtube", "query": "lofi"}])
+    def test_plan_gen_error_falls_back(self):
+        def boom(prompt): raise RuntimeError("offline")
+        agent.gen = boom
+        steps = agent.plan_steps("youtube pe lofi chalao")
+        self.assertEqual(steps, [{"action": "play_youtube", "query": "lofi"}])
+
+    # ---------------- executor (dry run, no screen needed)
+    def test_execute_order_and_summary(self):
+        logs = []
+        old = bus.log
+        bus.log = lambda role, text: logs.append(text)
+        try:
+            out = agent.execute([{"action": "open_app", "name": "chrome"},
+                                 {"action": "play_youtube", "query": "lofi"}], dry_run=True)
+        finally:
+            bus.log = old
+        self.assertIn("2 steps", out)
+        self.assertTrue(any("Step 1/2" in x for x in logs) and any("Step 2/2" in x for x in logs))
+    def test_execute_stop_flag(self):
+        calls = []
+        pc.open_app = lambda name: (calls.append(name), agent.request_stop())[0] or "ok"
+        out = agent.execute([{"action": "open_app", "name": "chrome"},
+                             {"action": "open_app", "name": "notepad"}], dry_run=False)
+        self.assertEqual(calls, ["chrome"])          # second step never ran
+        self.assertIn("Rok diya", out)
+    def test_execute_locked(self):
+        bus.locked = True
+        out = agent.execute([{"action": "open_app", "name": "chrome"}], dry_run=True)
+        self.assertIn("LOCKED", out)
+    def test_stop_everything(self):
+        self.assertIn("Rok diya", agent.stop_everything())
+        self.assertTrue(bus.stop)
+        agent.clear_stop()
+
+    # ---------------- WhatsApp safety: confirm unless 'bina puche'
+    def test_whatsapp_asks_first(self):
+        pc.confirm = lambda q: False
+        out = agent.whatsapp_message("rahul", "happy birthday", send=True)
+        self.assertIn("User said no", out)
+    def test_whatsapp_confirm_yes_dry_run(self):
+        asked = []
+        pc.confirm = lambda q: (asked.append(q), True)[1]
+        out = agent.whatsapp_message("rahul", "happy birthday", send=True)
+        self.assertTrue(asked)                       # recipient + message read back
+        self.assertIn("rahul", asked[0]) and self.assertIn("happy birthday", asked[0])
+        self.assertIn("DRY RUN", out)
+    def test_whatsapp_auto_send_skips_confirm(self):
+        asked = []
+        pc.confirm = lambda q: (asked.append(q), True)[1]
+        out = agent.whatsapp_message("rahul", "happy birthday", send=True, auto_send=True)
+        self.assertEqual(asked, [])
+        self.assertIn("DRY RUN", out)
+    def test_bina_puche_sets_auto_send(self):
+        asked = []
+        pc.confirm = lambda q: (asked.append(q), True)[1]
+        out = agent.plan_and_do("whatsapp pe rahul ko hello bhej do bina puche")
+        self.assertEqual(asked, [])                  # no confirmation asked
+    def test_plan_and_do_full_command(self):
+        out = agent.plan_and_do("chrome kholke youtube pe kesariya chalao")
+        self.assertIn("2 steps", out)
+
+    def test_agent_tools_registered(self):
+        names = {t.__name__ for t in pc.TOOLS}
+        for n in ("plan_and_do", "whatsapp_message", "stop_everything"):
+            self.assertIn(n, names)
+        from jarvis.brain import LOCAL_TOOLS
+        for n in ("plan_and_do", "whatsapp_message", "stop_everything"):
+            self.assertIn(n, LOCAL_TOOLS)
 
 
 if __name__ == "__main__":

@@ -78,6 +78,10 @@ def assistant(text_mode, typed):
             continue
         if re.search(r"\b(bye jarvis|goodbye|alvida)\b", low) or "अलविदा" in t or "बाय जार्विस" in t:
             speak("Theek hai, phir milte hain. Bye!"); return
+        from jarvis import agent
+        if any(p in low for p in agent.STOP_PHRASES):
+            agent.request_stop()
+            speak("Rok diya. Jo chal raha tha, wahi band."); continue
         bus.state("thinking")
         reply = brain.ask(t)
         if reply and reply.strip().upper() != "IGNORE": speak(reply)

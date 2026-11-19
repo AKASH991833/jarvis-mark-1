@@ -952,13 +952,16 @@ from . import extras
 _RAW += extras.EXTRA_TOOLS
 from . import remote
 _RAW += remote.REMOTE_TOOLS
+from . import agent
+_RAW += agent.AGENT_TOOLS
 
 AUDIT = config.DATA_DIR / "action_log.txt"
 CONTROL = {"open_app", "close_app", "open_path", "delete_path", "move_path", "copy_path", "write_text_file", "type_text", "press_keys",
            "snap_window", "take_webcam_photo",
            "click_at", "scroll", "run_shell_command", "power", "install_software", "uninstall_software", "download_file", "run_installer",
            "enroll_voice", "dictation_mode", "meeting_mode", "music_control", "play_music", "create_new_tool", "self_heal", "undo_last_change", "apply_update", "save_skill", "run_skill", "find_and_click", "gui_task", "focus_window", "window_action", "show_desktop", "volume", "brightness", "media_control",
-           "upgrade_brain_to_local", "clean_temp_files", "organize_folder", "send_whatsapp", "send_email", "run_routine", "take_screenshot", "describe_screen", "open_settings_page", "create_folder"}
+           "upgrade_brain_to_local", "clean_temp_files", "organize_folder", "send_whatsapp", "send_email", "run_routine", "take_screenshot", "describe_screen", "open_settings_page", "create_folder",
+           "plan_and_do", "whatsapp_message", "stop_everything"}
 
 def _wrap(fn):
     import functools

@@ -13,6 +13,7 @@ RULES:
 - Never install, download or change anything on your own initiative from research or suggestions: only suggest, and let {name} decide.
 - Morning briefing: call morning_briefing and read it out as a short friendly summary. Dictation, meeting notes, website watch, file content search, usage report, PC health and music all have tools. Self-improvement tools (create_new_tool, self_heal, apply_update, save_skill, undo_last_change) always ask {name} for a yes themselves; never call them unless he asked or agreed.
 - v2.0 tools: snap_window (window left/right karo), clipboard_history (copied items wapas lao), take_webcam_photo, currency_convert (dollar to rupee), translate_text, internet_speed_test, find_large_files (disk khali karne ke liye), focus_mode (distraction-free work timer), list_reminders / cancel_reminder. Reminders survive a restart.
+- v2.1 multi-step control: jab koi request kai kaam ek saath maange ("chrome kholke youtube pe Tum Hi Ho chalao", "whatsapp pe Rahul ko happy birthday bhejo aur enter daba do", "google pe X search karke notepad kholo"), plan_and_do(goal) call karo - usme poora goal user ke shabdon me do; Jarvis step-by-step karega aur HUD me har step dikhayega. WhatsApp bhejne se pehle whatsapp_message / plan khud recipient aur message padhkar poochhega; auto_send=True sirf tab pass karo jab user ne USI command me 'bina puche bhej do' kaha ho. Paison ka len-den ya payment kabhi plan me mat karo. 'Ruk jao Jarvis' / 'stop karo' par stop_everything call karo (running plan turant rukta hai).
 - Use set_preference when he states a lasting preference, recall_past when he refers to earlier work or chats. Calendar: add_calendar_event (opens Google Calendar prefilled) and calendar_events. face_greeting turns the webcam greeting on or off.
 - When he states something he WILL do later ("kal subah email bhejna hai"), call add_intention. Recurring meetings: add_recurring_event. When he says it is done, mark_intention_done.
 - If the speech text looks like noise or a nonsense fragment, reply with exactly: IGNORE
@@ -24,7 +25,8 @@ LOCAL_TOOLS = ["open_app", "close_app", "open_website", "google_search", "youtub
                "find_files", "read_text_file", "take_screenshot", "system_info", "current_time", "volume", "media_control", "get_weather",
                "get_news", "remember", "set_reminder", "list_reminders", "cancel_reminder", "install_software", "run_routine", "add_note",
                "show_desktop", "press_keys", "type_text", "focus_window", "snap_window", "clipboard_history", "focus_mode", "find_large_files",
-               "top_processes", "set_brain_mode", "brain_status", "morning_briefing", "play_music", "music_control", "usage_report", "watchdog_status"]
+               "top_processes", "set_brain_mode", "brain_status", "morning_briefing", "play_music", "music_control", "usage_report", "watchdog_status",
+               "plan_and_do", "whatsapp_message", "stop_everything"]
 
 def _quota_error(e):
     m = str(e).lower()
@@ -59,6 +61,12 @@ class Brain:
         pc.vision = self.vision
         pc.brain_reload = self.reload
         pc.brain_status = self.status
+        try:
+            from . import agent
+            agent.gen = self.plan_text
+            agent.vision_ask = self.vision
+        except Exception:
+            pass
         self.reload()
 
     # ------------------------------------------------------------ setup
@@ -130,6 +138,24 @@ class Brain:
                 except Exception as e: res = f"ERROR: {e}"
                 self.local_msgs.append({"role": "tool", "tool_name": fn, "content": str(res)[:1500]})
         return "Kaam poora nahi ho paaya, thoda alag tareeke se bolo."
+
+    # ------------------------------------------------------------ planner text (used by agent.plan_steps)
+    def plan_text(self, prompt):
+        """One-shot text generation for step planning: Gemini first, local brain as backup."""
+        try:
+            r = self.client.models.generate_content(model=self.models[self.mi], contents=prompt)
+            return (r.text or "").strip()
+        except Exception:
+            pass
+        if self.ollama_ready():
+            try:
+                import requests
+                r = requests.post(self.s["ollama_url"] + "/api/generate", timeout=120,
+                                  json={"model": self.s["ollama_model"], "prompt": prompt, "stream": False})
+                return (r.json().get("response") or "").strip()
+            except Exception:
+                pass
+        return None
 
     # ------------------------------------------------------------ vision (Gemini only)
     def vision(self, image_path, question):

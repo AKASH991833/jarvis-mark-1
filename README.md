@@ -23,6 +23,20 @@ Double-click `run.bat`. Stop with "bye Jarvis" or close the window.
 The dark window with the glowing arc reactor is your HUD: you can speak, or type in the box at the bottom.
 No mic? Double-click `run_text.bat` and type instead.
 
+## Ek baar me poora kaam (multi-step, insaan ki tarah)
+
+Ek hi sentence me kitne bhi kaam bol do - Jarvis plan banata hai aur step-by-step karta hai, har step HUD ke log me dikhta hai:
+
+- "Chrome kholke YouTube pe Kesariya chalao"
+- "Chrome kholo, WhatsApp pe Rahul ko 'happy birthday bhai' likh do aur Enter daba do"
+- "YouTube pe arijit singh ke gaane chalao aur notepad kholo"
+- "Google pe linux interview questions search karo"
+- "WhatsApp pe 919876543210 ko message karo 'meeting 5 baje hai'"
+
+**Message bhejne ka rule:** Jarvis kisi ko message bhejne se pehle naam aur message padhkar poochhta hai ("Rahul ko ye bhejun? Haan ya nahi?"). Tum bolo "bina puche bhej do" to us command ko seedha bhej deta hai. Bolo "mat bhejo, sirf likh do" to type karke chhod deta hai - Enter tum khud dabao.
+
+**Rokna ho to:** "ruk jao Jarvis" ya "stop karo" - chalta hua plan turant rukta hai. HUD ka PC ARMED/LOCKED switch pehle jaisa hi hai.
+
 ## Things you can say
 
 - "Chrome kholo" / "Notepad kholo" / "Calculator open karo"
@@ -53,7 +67,7 @@ Buttons at the bottom: **MIC LIVE/MUTED** and **PC ARMED/LOCKED** (the big red s
 
 ## Safety (always)
 
-Jarvis ALWAYS asks ("haan" or "nahi") before: deleting files (they go to the Recycle Bin), installing or removing programs, downloading files, taking over mouse/keyboard, shutdown/restart, closing apps, moving/overwriting files, running commands, sending email or WhatsApp, taking a webcam photo, or changing its own code.
+Jarvis ALWAYS asks ("haan" or "nahi") before: deleting files (they go to the Recycle Bin), installing or removing programs, downloading files, taking over mouse/keyboard, shutdown/restart, closing apps, moving/overwriting files, running commands, sending email or WhatsApp (unless you said "bina puche bhej do" in that command), taking a webcam photo, or changing its own code.
 Every action is saved in `data/action_log.txt`. Self-changes are backed up in `data/backups/` - "last change undo karo" restores them.
 
 ## Optional free upgrades (in `.env`)
@@ -73,10 +87,11 @@ Every action is saved in `data/action_log.txt`. Self-changes are backed up in `d
 - Jarvis controls the PC only while it is running. It cannot wake a sleeping PC or unlock Windows.
 - Needs internet for hearing, thinking and voice (except the optional local brain).
 - Windows admin popups ("Yes/No") during installs still need your click.
+- WhatsApp Web flow needs WhatsApp Web already logged in (one-time QR scan in Chrome). Pehli baar slow ho sakta hai - page load hone ka wait karta hai.
 
 ## Development
 
-- `run_tests.bat` - 22 offline tests (no mic/screen/internet needed)
+- `run_tests.bat` - 43 offline tests (no mic/screen/internet needed)
 - GitHub Actions runs the tests on Windows + Linux on every push
 - Self-update: "update check karo" pulls the newest version from this repo (public repo: works as-is; private repo: put GITHUB_TOKEN in `.env`)
 
